@@ -1,14 +1,5 @@
 # Storybook Addon Actions
 
-[![Build Status on CircleCI](https://circleci.com/gh/storybooks/storybook.svg?style=shield)](https://circleci.com/gh/storybooks/storybook)
-[![CodeFactor](https://www.codefactor.io/repository/github/storybooks/storybook/badge)](https://www.codefactor.io/repository/github/storybooks/storybook)
-[![Known Vulnerabilities](https://snyk.io/test/github/storybooks/storybook/8f36abfd6697e58cd76df3526b52e4b9dc894847/badge.svg)](https://snyk.io/test/github/storybooks/storybook/8f36abfd6697e58cd76df3526b52e4b9dc894847)
-[![BCH compliance](https://bettercodehub.com/edge/badge/storybooks/storybook)](https://bettercodehub.com/results/storybooks/storybook) [![codecov](https://codecov.io/gh/storybooks/storybook/branch/master/graph/badge.svg)](https://codecov.io/gh/storybooks/storybook)
-[![Storybook Slack](https://now-examples-slackin-rrirkqohko.now.sh/badge.svg)](https://now-examples-slackin-rrirkqohko.now.sh/)
-[![Backers on Open Collective](https://opencollective.com/storybook/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/storybook/sponsors/badge.svg)](#sponsors)
-
----
-
 Storybook Addon Actions can be used to display data received by event handlers in [Storybook](https://storybook.js.org).
 
 [Framework Support](https://github.com/storybooks/storybook/blob/master/ADDONS_SUPPORT.md)
@@ -134,11 +125,11 @@ import { storiesOf } from '@storybook/html';
 import { withActions } from '@storybook/addon-actions';
 
 storiesOf('button', module)
-  // Log mousovers on entire story and clicks on .btn
+  // Log mouseovers on entire story and clicks on .btn
   .addDecorator(withActions('mouseover', 'click .btn'))
   .add('with actions', () => `
     <div>
-      Clicks on this button will be logged: <button class="btn" type="button">Button</button>
+      Clicks on this button will be logged: <button className="btn" type="button">Button</button>
     </div>
   `);
 ```

@@ -27,13 +27,14 @@ module.exports = {
         '/configurations/add-custom-head-tags/',
         '/configurations/serving-static-files/',
         '/configurations/env-vars/',
+        '/configurations/theming/',
         '/configurations/cli-options/',
       ],
       testing: [
         '/testing/react-ui-testing/',
         '/testing/structural-testing/',
         '/testing/interaction-testing/',
-        '/testing/css-style-testing/',
+        '/testing/automated-visual-testing/',
         '/testing/manual-testing/',
       ],
       addons: [

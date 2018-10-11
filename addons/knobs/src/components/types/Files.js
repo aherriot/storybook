@@ -1,22 +1,12 @@
 import { FileReader } from 'global';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import styled from 'react-emotion';
+import { Input } from '@storybook/components';
 
-const Input = styled('input')({
-  display: 'table-cell',
-  boxSizing: 'border-box',
-  verticalAlign: 'middle',
-  height: '26px',
-  width: '100%',
-  maxWidth: '100%',
-  outline: 'none',
-  border: '1px solid #f7f4f4',
-  borderRadius: 2,
-  fontSize: 11,
-  padding: '5px',
-  color: '#555',
+const FileInput = styled(Input)({
+  paddingTop: 4,
 });
 
 function fileReaderPromise(file) {
@@ -28,12 +18,12 @@ function fileReaderPromise(file) {
 }
 
 const FilesType = ({ knob, onChange }) => (
-  <Input
-    id={knob.name}
+  <FileInput
     type="file"
     multiple
     onChange={e => Promise.all(Array.from(e.target.files).map(fileReaderPromise)).then(onChange)}
     accept={knob.accept}
+    size="flex"
   />
 );
 

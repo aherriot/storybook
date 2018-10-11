@@ -3,23 +3,23 @@ id: 'writing-stories'
 title: 'Writing Stories'
 ---
 
-Storybook is all about writing stories. Usually a story contains a single state of one of your components. That's like a visual test case.
+Storybook is all about writing stories. A story usually contains a single state of one component, almost like a visual test case.
 
 > Technically, a story is a function that returns a React element.
 
-You can write a set of stories for your components and you'll get a storybook.
+A Storybook can be comprised of many stories for many components.
 
-## Keeping your stories
+## Location for Stories
 
-There's no hard and fast rule for this. But, keeping stories close to your components is a good idea.
+There are no rules for this, but in general, stories are easier to maintain when they are located closer to components.
 
-For example, let's say your UI components live in a directory called: `src/components.` Then you can write stories inside the `src/stories` directory.
+For example, if the UI components live in a directory called: `src/components`, then the stories can be written inside the `src/stories` directory.
 
-This is just one way to do that. You can always edit your storybook config file and ask it to load stories from anywhere you want.
+The Storybook config file can also be edited to load stories from other folders too.
 
-## Writing stories
+## Writing Stories
 
-This is how you write stories:
+Here is an example of a basic story:
 (Let's assume there's a component called "Button" in `src/components/Button.js`.)
 
 ```js
@@ -31,45 +31,47 @@ import { action } from '@storybook/addon-actions';
 import Button from '../components/Button';
 
 storiesOf('Button', module)
-  .add('with text', () => (
-    <Button onClick={action('clicked')}>Hello Button</Button>
-  ))
+  .add('with text', () => <Button onClick={action('clicked')}>Hello Button</Button>)
   .add('with some emoji', () => (
-    <Button onClick={action('clicked')}><span role="img" aria-label="so cool">😀 😎 👍 💯</span></Button>
+    <Button onClick={action('clicked')}>
+      <span role="img" aria-label="so cool">
+        😀 😎 👍 💯
+      </span>
+    </Button>
   ));
 ```
 
-This will show stories in your storybook like this:
+This will add stories in the storybook like this:
 
 ![Basic stories](../static/basic-stories.png)
 
-This is just our core API for writing stories. In addition to this, you can use the official and third party Storybook [addons](/addons/introduction) to get more functionality.
+This uses Storybook's basic API for writing stories. There are official and third party Storybook [addons](/addons/introduction) for more advanced functionality.
 
 ## Loading stories dynamically
 
-Sometimes, you will want to load your stories dynamically rather than explicitly requiring them in the Storybook config file.
+Sometimes, stories need to be loaded dynamically rather than explicitly in the Storybook config file.
 
-For example, you may write stories for your app inside the `src/components` directory with the `.stories.js` extension. Then you will want to load them at once. Simply edit your config directory at `.storybook/config.js` as follows:
+For example, the stories for an app may all be inside the `src/components` directory with the `.stories.js` extension. It is easier to load all the stories automatically like this inside the `.storybook/config.js` file:
 
 ```js
 import { configure } from '@storybook/react';
 
-const req = require.context('../src/components', true, /\.stories\.js$/)
+const req = require.context('../src/components', true, /\.stories\.js$/);
 
 function loadStories() {
-  req.keys().forEach((filename) => req(filename))
+  req.keys().forEach(filename => req(filename));
 }
 
 configure(loadStories, module);
 ```
 
-Here we use Webpack's [require.context](https://webpack.js.org/guides/dependency-management/#require-context) to load modules dynamically. Have a look at the relevant Webpack [docs](https://webpack.js.org/guides/dependency-management/#require-context) to learn more about how to use require.context.
+Storybook uses Webpack's [require.context](https://webpack.js.org/guides/dependency-management/#require-context) to load modules dynamically. Take a look at the relevant Webpack [docs](https://webpack.js.org/guides/dependency-management/#require-context) to learn more about how to use `require.context`.
 
-The **React Native** packager resolves all the imports at build-time, so it's not possible to load modules dynamically. If you don't want to import all your stories manually you can use [react-native-storybook-loader](https://github.com/elderfo/react-native-storybook-loader) to automatically create the import statements for all of your stories. 
+The **React Native** packager resolves all the imports at build-time, so it's not possible to load modules dynamically. There is a third party loader  [react-native-storybook-loader](https://github.com/elderfo/react-native-storybook-loader) to automatically generate the import statements for all stories.
 
 ## Using Decorators
 
-A decorator is a way to wrap a story with a common set of component(s). Let's say you want to center all your stories. Here is how we can do this with a decorator:
+A decorator is a way to wrap a story with a common set of components. Here is an example for centering all components:
 
 ```js
 import React from 'react';
@@ -77,53 +79,44 @@ import { storiesOf } from '@storybook/react';
 import MyComponent from '../my_component';
 
 storiesOf('MyComponent', module)
-  .addDecorator(story => (
-    <div style={{textAlign: 'center'}}>
-      {story()}
-    </div>
-  ))
+  .addDecorator(story => <div style={{ textAlign: 'center' }}>{story()}</div>)
   .add('without props', () => <MyComponent />)
-  .add('with some props', () => <MyComponent text="The Comp"/>);
+  .add('with some props', () => <MyComponent text="The Comp" />);
 ```
 
-Here we only add the decorator for the current set of stories. (In this example, we add it just for the **MyComponent** story group.)
+This only applies the decorator to the current set of stories. (In this example, the decorator is added only to the **MyComponent** story group.)
 
-But, you can also add a decorator **globally** and it'll be applied to all the stories you create. This is how to add a decorator like that:
+It is possible to apply a decorator **globally** to all the stories. Here is an example of the Storybook config file:
 
 ```js
 import React from 'react';
 import { configure, addDecorator } from '@storybook/react';
 
-addDecorator(story => (
-  <div style={{textAlign: 'center'}}>
-    {story()}
-  </div>
-));
+addDecorator(story => <div style={{ textAlign: 'center' }}>{story()}</div>);
 
-configure(function () {
+configure(function() {
   // ...
 }, module);
 ```
 
 ## Using Markdown
 
-As of storybook 3.3, [Markdown](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) can be used in storybook by default. All you need to do is import a markdown file, which extracts the raw markdown content into a string. You can then use that string in any addon that supports markdown (such as notes).
-
+As of storybook 3.3, [Markdown](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) can be used in Storybook by default. Users can import a markdown file which extracts the raw markdown content into a string. The string can then be used in any addon that supports markdown such as notes and info.
 
 ```js
 import React from 'react';
 import { storiesOf } from '@storybook/react';
-import { withMarkdownNotes } from '@storybook/addon-notes';
 import MyComponent from './MyComponent';
 import someMarkdownText from './someMarkdownText.md';
 
-storiesOf('Component', module)
-  .add('With Markdown', withMarkdownNotes(someMarkdownText)(() => <MyComponent/>));
+storiesOf('Component', module).add('With Markdown', () => <MyComponent />, {
+  notes: { markdown: someMarkdownText },
+});
 ```
 
 ## Nesting stories
 
-You can organize your stories in a nesting structures using "/" as a separator:
+Stories can be organized in a nested structure using "/" as a separator:
 
 ```js
 // file: src/stories/index.js
@@ -132,22 +125,25 @@ import React from 'react';
 import { storiesOf } from '@storybook/react';
 import Button from '../components/Button';
 
-storiesOf('My App/Buttons/Simple', module)
-  .add('with text', () => (
-    <Button onClick={action('clicked')}>Hello Button</Button>
-  ));
+storiesOf('My App/Buttons/Simple', module).add('with text', () => (
+  <Button onClick={action('clicked')}>Hello Button</Button>
+));
 
-storiesOf('My App/Buttons/Emoji', module)
-  .add('with some emoji', () => (
-    <Button onClick={action('clicked')}><span role="img" aria-label="so cool">😀 😎 👍 💯</span></Button>
-  ));
+storiesOf('My App/Buttons/Emoji', module).add('with some emoji', () => (
+  <Button onClick={action('clicked')}>
+    <span role="img" aria-label="so cool">
+      😀 😎 👍 💯
+    </span>
+  </Button>
+));
 ```
 
-## Generating nesting path based on __dirname
+## Generating nesting path based on \_\_dirname
 
-The name is just a javascript string, by using a template literal, you can easily interpolate data.
+Nesting paths can be programmatically generated with template literals because story names are strings.
 
 One example would be to use `base` from [`paths.macro`](https://github.com/storybooks/paths.macro):
+
 ```js
 import React from 'react';
 import base from 'paths.macro';
@@ -161,17 +157,17 @@ storiesOf(`Other|${base}/Dirname Example`, module)
   .add('story 2', () => <BaseButton label="Story 2" />);
 ```
 
-*This uses [babel-plugin-macros](https://github.com/kentcdodds/babel-plugin-macros)*.
+_This uses [babel-plugin-macros](https://github.com/kentcdodds/babel-plugin-macros)_.
 
 ## Run multiple storybooks
 
-You can run multiple storybooks for different kinds of stories (or components). To do that, you can create different NPM scripts to start different stories. See:
+Multiple storybooks can be built for different kinds of stories or components in a single repository by specifying different port numbers in the start scripts:
 
 ```json
 {
-   "scripts": {
-     "start-storybook-for-theme": "start-storybook -p 9001 -c .storybook-theme",
-     "start-storybook-for-app": "start-storybook -p 8001 -c .storybook-app"
-   }
+  "scripts": {
+    "start-storybook-for-theme": "start-storybook -p 9001 -c .storybook-theme",
+    "start-storybook-for-app": "start-storybook -p 8001 -c .storybook-app"
+  }
 }
 ```

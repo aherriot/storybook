@@ -1,53 +1,27 @@
-import React from 'react';
+import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import qs from 'qs';
+import { document } from 'global';
+import styled from '@emotion/styled';
+import copy from 'copy-to-clipboard';
 
-import styled from 'react-emotion';
+import { Placeholder, TabWrapper, TabsState, ActionBar, ActionButton } from '@storybook/components';
 
-import { Placeholder } from '@storybook/components';
-import GroupTabs from './GroupTabs';
-import PropForm from './PropForm';
 import Types from './types';
+import PropForm from './PropForm';
 
 const getTimestamp = () => +new Date();
 
 const DEFAULT_GROUP_ID = 'ALL';
 
-const PanelWrapper = styled('div')({
+const PanelWrapper = styled.div({
   width: '100%',
 });
 
-const PanelInner = styled('div')({
-  padding: '5px',
-  width: 'auto',
-  position: 'relative',
-});
-
-const ResetButton = styled('button')({
-  position: 'absolute',
-  bottom: 11,
-  right: 10,
-  border: 'none',
-  borderTop: 'solid 1px rgba(0, 0, 0, 0.2)',
-  borderLeft: 'solid 1px rgba(0, 0, 0, 0.2)',
-  background: 'rgba(255, 255, 255, 0.5)',
-  padding: '5px 10px',
-  borderRadius: '4px 0 0 0',
-  color: 'rgba(0, 0, 0, 0.5)',
-  outline: 'none',
-});
-
-export default class Panel extends React.Component {
+export default class Panel extends PureComponent {
   constructor(props) {
     super(props);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleClick = this.handleClick.bind(this);
-    this.setKnobs = this.setKnobs.bind(this);
-    this.reset = this.reset.bind(this);
-    this.update = this.update.bind(this);
-    this.setOptions = this.setOptions.bind(this);
-    this.onGroupSelect = this.onGroupSelect.bind(this);
-
-    this.state = { knobs: {}, groupId: DEFAULT_GROUP_ID };
+    this.state = { knobs: {} };
     this.options = {};
 
     this.lastEdit = getTimestamp();
@@ -55,30 +29,29 @@ export default class Panel extends React.Component {
   }
 
   componentDidMount() {
-    this.props.channel.on('addon:knobs:setKnobs', this.setKnobs);
-    this.props.channel.on('addon:knobs:setOptions', this.setOptions);
-    this.props.channel.on('addon:knobs:update', this.update);
+    const { channel, api } = this.props;
+    channel.on('addon:knobs:setKnobs', this.setKnobs);
+    channel.on('addon:knobs:setOptions', this.setOptions);
+    channel.on('addon:knobs:update', this.update);
 
-    this.stopListeningOnStory = this.props.api.onStory(() => {
-      this.setState({ knobs: [], groupId: DEFAULT_GROUP_ID });
-      this.props.channel.emit('addon:knobs:reset');
+    this.stopListeningOnStory = api.onStory(() => {
+      this.setState({ knobs: {} });
+      channel.emit('addon:knobs:reset');
     });
   }
 
   componentWillUnmount() {
-    this.props.channel.removeListener('addon:knobs:setKnobs', this.setKnobs);
+    const { channel } = this.props;
+
+    channel.removeListener('addon:knobs:setKnobs', this.setKnobs);
     this.stopListeningOnStory();
   }
 
-  onGroupSelect(name) {
-    this.setState({ groupId: name });
-  }
-
-  setOptions(options = { timestamps: false }) {
+  setOptions = (options = { timestamps: false }) => {
     this.options = options;
-  }
+  };
 
-  setKnobs({ knobs, timestamp }) {
+  setKnobs = ({ knobs, timestamp }) => {
     const queryParams = {};
     const { api, channel } = this.props;
 
@@ -88,7 +61,6 @@ export default class Panel extends React.Component {
         // For the first time, get values from the URL and set them.
         if (!this.loadedFromUrl) {
           const urlValue = api.getQueryParam(`knob-${name}`);
-
           if (urlValue !== undefined) {
             // If the knob value present in url
             knob.value = Types[knob.type].deserialize(urlValue);
@@ -96,52 +68,75 @@ export default class Panel extends React.Component {
           }
         }
 
-        queryParams[`knob-${name}`] = Types[knob.type].serialize(knob.value);
+        // set all knobsquery params to be deleted from URL
+        queryParams[`knob-${name}`] = null;
       });
-      this.loadedFromUrl = true;
+
       api.setQueryParams(queryParams);
       this.setState({ knobs });
+
+      this.loadedFromUrl = true;
     }
-  }
+  };
 
-  reset() {
-    this.props.channel.emit('addon:knobs:reset');
-  }
+  reset = () => {
+    const { channel } = this.props;
 
-  update() {
-    this.props.channel.emit('addon:knobs:update2');
-  }
+    channel.emit('addon:knobs:reset');
+  };
 
-  emitChange(changedKnob) {
-    this.props.channel.emit('addon:knobs:knobChange', changedKnob);
-  }
+  update = () => {
+    const { channel } = this.props;
 
-  handleChange(changedKnob) {
-    this.lastEdit = getTimestamp();
-    const { api } = this.props;
+    channel.emit('addon:knobs:update2');
+  };
+
+  copy = () => {
+    const { location } = document;
+    const query = qs.parse(location.search.replace('?', ''));
     const { knobs } = this.state;
-    const { name, type, value } = changedKnob;
+
+    Object.entries(knobs).forEach(([name, knob]) => {
+      query[`knob-${name}`] = Types[knob.type].serialize(knob.value);
+    });
+
+    copy(`${location.origin + location.pathname}?${qs.stringify(query)}`);
+
+    // TODO: show some notification of this
+  };
+
+  emitChange = changedKnob => {
+    const { channel } = this.props;
+
+    channel.emit('addon:knobs:knobChange', changedKnob);
+  };
+
+  handleChange = changedKnob => {
+    this.lastEdit = getTimestamp();
+    const { knobs } = this.state;
+    const { name } = changedKnob;
     const newKnobs = { ...knobs };
     newKnobs[name] = {
       ...newKnobs[name],
       ...changedKnob,
     };
 
-    this.setState({ knobs: newKnobs });
-
-    const queryParams = {};
-    queryParams[`knob-${name}`] = Types[type].serialize(value);
-
-    api.setQueryParams(queryParams);
     this.setState({ knobs: newKnobs }, this.emitChange(changedKnob));
-  }
+  };
 
-  handleClick(knob) {
-    this.props.channel.emit('addon:knobs:knobClick', knob);
-  }
+  handleClick = knob => {
+    const { channel } = this.props;
+
+    channel.emit('addon:knobs:knobClick', knob);
+  };
 
   render() {
-    const { knobs, groupId } = this.state;
+    const { knobs } = this.state;
+    const { active } = this.props;
+
+    if (!active) {
+      return null;
+    }
 
     const groups = {};
     const groupIds = [];
@@ -152,20 +147,23 @@ export default class Panel extends React.Component {
       const knobKeyGroupId = knobs[key].groupId;
       groupIds.push(knobKeyGroupId);
       groups[knobKeyGroupId] = {
-        render: () => <div id={knobKeyGroupId}>{knobKeyGroupId}</div>,
+        render: ({ active: groupActive, selected }) => (
+          <TabWrapper active={groupActive || selected === DEFAULT_GROUP_ID}>
+            <PropForm
+              knobs={knobsArray.filter(knob => knob.groupId === knobKeyGroupId)}
+              onFieldChange={this.handleChange}
+              onFieldClick={this.handleClick}
+            />
+          </TabWrapper>
+        ),
         title: knobKeyGroupId,
       };
     });
 
-    if (groupIds.length > 0) {
-      groups[DEFAULT_GROUP_ID] = {
-        render: () => <div id={DEFAULT_GROUP_ID}>{DEFAULT_GROUP_ID}</div>,
-        title: DEFAULT_GROUP_ID,
-      };
-      if (groupId !== DEFAULT_GROUP_ID) {
-        knobsArray = knobsArray.filter(key => knobs[key].groupId === groupId);
-      }
-    }
+    groups[DEFAULT_GROUP_ID] = {
+      render: () => null,
+      title: DEFAULT_GROUP_ID,
+    };
 
     knobsArray = knobsArray.map(key => knobs[key]);
 
@@ -175,33 +173,38 @@ export default class Panel extends React.Component {
 
     return (
       <PanelWrapper>
-        {groupIds.length > 0 && (
-          <GroupTabs
-            groups={groups}
-            onGroupSelect={this.onGroupSelect}
-            selectedGroup={this.state.groupId}
-          />
-        )}
-        <PanelInner>
+        {groupIds.length > 0 ? (
+          <TabsState>
+            {Object.entries(groups).map(([k, v]) => (
+              <div id={k} title={v.title}>
+                {v.render}
+              </div>
+            ))}
+          </TabsState>
+        ) : (
           <PropForm
             knobs={knobsArray}
             onFieldChange={this.handleChange}
             onFieldClick={this.handleClick}
           />
-        </PanelInner>
-        <ResetButton onClick={this.reset}>RESET</ResetButton>
+        )}
+        <ActionBar>
+          <ActionButton onClick={this.copy}>COPY</ActionButton>
+          <ActionButton onClick={this.reset}>RESET</ActionButton>
+        </ActionBar>
       </PanelWrapper>
     );
   }
 }
 
 Panel.propTypes = {
+  active: PropTypes.bool.isRequired,
+  onReset: PropTypes.object, // eslint-disable-line
   channel: PropTypes.shape({
     emit: PropTypes.func,
     on: PropTypes.func,
     removeListener: PropTypes.func,
   }).isRequired,
-  onReset: PropTypes.object, // eslint-disable-line
   api: PropTypes.shape({
     onStory: PropTypes.func,
     getQueryParam: PropTypes.func,

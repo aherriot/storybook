@@ -27,6 +27,7 @@ object Project : Project({
     buildType(OpenSourceProjects_Storybook_CliTest)
     buildType(OpenSourceProjects_Storybook_Test)
     buildType(OpenSourceProjects_Storybook_Lint)
+    buildType(OpenSourceProjects_Storybook_Lint_Warnings)
     buildType(OpenSourceProjects_Storybook_SmokeTests)
     buildType(OpenSourceProjects_Storybook_Chromatic)
 
@@ -118,8 +119,10 @@ object Project : Project({
                 ]
             """.trimIndent())
             param("format", "duration")
-            param("title", "New chart title")
             param("seriesTitle", "Serie")
+            param("hideFilters", "")
+            param("title", "Build Duration (all stages)")
+            param("defaultFilters", "")
         }
         feature {
             type = "project-graphs"
@@ -136,11 +139,11 @@ object Project : Project({
             """.trimIndent())
             param("format", "percent")
             param("hideFilters", "")
-            param("title", "New chart title")
+            param("title", "Covered Percentage of JS Lines")
             param("defaultFilters", "")
             param("seriesTitle", "Serie")
         }
-feature {
+        feature {
             type = "project-graphs"
             id = "PROJECT_EXT_308"
             param("series", """
@@ -154,12 +157,43 @@ feature {
                 ]
             """.trimIndent())
             param("format", "integer")
-            param("title", "New chart title")
             param("seriesTitle", "Serie")
+            param("hideFilters", "")
+            param("title", "Total Number of JS Statements")
+            param("defaultFilters", "")
+        }
+        feature {
+            type = "project-graphs"
+            id = "PROJECT_EXT_117"
+            param("series", """
+                    [
+                      {
+                        "type": "valueType",
+                        "title": "Total Artifacts Size",
+                        "sourceBuildTypeId": "OpenSourceProjects_Storybook_CliTestLatestCra",
+                        "key": "ArtifactsSize"
+                      }
+                    ]
+                """.trimIndent())
+            param("format", "text")
+            param("title", "Total Artifacts Size")
+            param("seriesTitle", "Serie")
+        }
+        feature {
+            type = "Invitation"
+            id = "PROJECT_EXT_209"
+            param("createdByUserId", "1702")
+            param("invitationType", "joinProjectInvitation")
+            param("secure:token", "credentialsJSON:07400f1b-a51d-46ae-b056-2e24a653f4d1")
+            param("name", "Join Storybook project")
+            param("welcomeText", "Filipp Riabchun invites you to join the Storybook project")
+            param("disabled", "false")
+            param("groupKey", "STORYBOOK_DEVELO")
+            param("multi", "true")
         }
     }
 
     params {
-        param("docker.node.version", "10.1")
+        param("docker.node.version", "latest")
     }
 })

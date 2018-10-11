@@ -1,14 +1,5 @@
 # Storybook Info Addon
 
-[![Build Status on CircleCI](https://circleci.com/gh/storybooks/storybook.svg?style=shield)](https://circleci.com/gh/storybooks/storybook)
-[![CodeFactor](https://www.codefactor.io/repository/github/storybooks/storybook/badge)](https://www.codefactor.io/repository/github/storybooks/storybook)
-[![Known Vulnerabilities](https://snyk.io/test/github/storybooks/storybook/8f36abfd6697e58cd76df3526b52e4b9dc894847/badge.svg)](https://snyk.io/test/github/storybooks/storybook/8f36abfd6697e58cd76df3526b52e4b9dc894847)
-[![BCH compliance](https://bettercodehub.com/edge/badge/storybooks/storybook)](https://bettercodehub.com/results/storybooks/storybook) [![codecov](https://codecov.io/gh/storybooks/storybook/branch/master/graph/badge.svg)](https://codecov.io/gh/storybooks/storybook)  
-[![Storybook Slack](https://now-examples-slackin-rrirkqohko.now.sh/badge.svg)](https://now-examples-slackin-rrirkqohko.now.sh/)
-[![Backers on Open Collective](https://opencollective.com/storybook/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/storybook/sponsors/badge.svg)](#sponsors)
-
-* * *
-
 Storybook Info Addon will show additional information for your stories in [Storybook](https://storybook.js.org).
 Useful when you want to display usage or other types of documentation alongside your story.
 
@@ -26,137 +17,227 @@ npm i -D @storybook/addon-info
 
 ## Basic usage
 
-Then wrap your story with the `withInfo`, which is a function that takes either
-documentation text or an options object:
+Then, add `withInfo` as a decarator to your book of stories.
+It is possible to add `info` by default to all or a subsection of stories by using a global or story decorator.
+
+It is important to declare this decorator as **the first decorator**, otherwise it won't work well.
 
 ```js
-import { withInfo } from '@storybook/addon-info';
-
-storiesOf('Component', module)
-  .add('simple info',
-    withInfo(`
-      description or documentation about my component, supports markdown
-
-      ~~~js
-      <Button>Click Here</Button>
-      ~~~
-
-    `)(() =>
-      <Component>Click the "?" mark at top-right to view the info.</Component>
-    )
-  )
+addDecorator(withInfo); // Globally in your .storybook/config.js.
 ```
 
-## Usage with options
-
-`withInfo` can also take an [options object](#global-options) in case you want to configure how
-the info panel looks on a per-story basis:
+or
 
 ```js
-import { withInfo } from '@storybook/addon-info';
+storiesOf('Component', module)
+  .addDecorator(withInfo) // At your stories directly.
+  .add(...);
+```
+
+Then, you can use the `info` parameter to either pass certain options or specific documentation text to your stories.
+A complete list of possible configurations can be found at [in a later section](#setting-global-options).
+This can be done per book of stories:
+
+```js
+import { storiesOf } from '@storybook/react';
+
+import Component from './Component';
 
 storiesOf('Component', module)
-  .add('simple info',
-    withInfo({
+  .addParameters({
+    info: {
+      // Your settings
+    },
+  })
+  .add('with some emoji', () => <Component />);
+```
+
+...or for each story individually:
+
+```js
+import { storiesOf } from '@storybook/react';
+
+import Component from './Component';
+
+storiesOf('Component', module)
+  .add(
+    'with some emoji',
+    () => <Component emoji />,
+    { info: { inline: true, header: false } } // Make your component render inline with the additional info
+  )
+  .add(
+    'with no emoji',
+    () => <Component />,
+    { info: '☹️ no emojis' } // Add additional info text directly
+  );
+```
+
+...or even together:
+
+```js
+import { storiesOf } from '@storybook/react';
+
+import Component from './Component';
+
+storiesOf('Component', module)
+  .addParameters({
+    info: {
+      // Make a default for all stories in this book,
+      inline: true, // where the components are inlined
       styles: {
         header: {
           h1: {
-            color: 'red'
-          }
-        }
+            color: 'red', // and the headers of the sections are red.
+          },
+        },
       },
-      text: 'String or React Element with docs about my component', // Warning! This option's name will be likely renamed to "summary" in 3.3 release. Follow this PR #1501 for details
-      // other possible options see in Global options section below
-    })(() =>
-      <Component>Click the "?" mark at top-right to view the info.</Component>
-    )
-  )
-```
-
-The `styles` prop can also accept a function. The default stylesheet is passed as argument:
-
-```js
-import { withInfo } from '@storybook/addon-info';
-
-storiesOf('Component', module)
-  .add('custom info styles using a function',
-    withInfo({
+    },
+  })
+  .add('green version', () => <Component green />, {
+    info: {
       styles: stylesheet => ({
+        // Setting the style with a function
         ...stylesheet,
         header: {
           ...stylesheet.header,
           h1: {
             ...stylesheet.header.h1,
-            color: 'red'
-          }
-        }
-      })
-    })(() =>
-      <Component>Click the "?" mark at top-right to view the info.</Component>
-    )
-  )
+            color: 'green', // Still inlined but with green headers!
+          },
+        },
+      }),
+    },
+  })
+  .add('something else', () => <Component different />, {
+    info: 'This story has additional text added to the info!', // Still inlined and with red headers!
+  });
 ```
 
-## Usage as decorator
+It is also possible to disable the `info` addon entirely.
+Depending on the scope at which you want to disable the addon, pass the following parameters object either to an individual story or to an `addParameters` call.
 
-It is possible to add infos by default to all components by using a global or story decorator. The drawback is you won't be able to display a distinct info message per story.
+```
+{
+  info: {
+    disable: true
+  }
+}
+```
 
-It is important to declare this decorator as **the first decorator**, otherwise it won't work well.
+## Markdown
+
+The `info` addon also supports markdown.
+To use markdown as additional textual documentation for your stories, either pass it directly as a String to the `info` parameters, or use the `text` option.
 
 ```js
-addDecorator((story, context) => withInfo('common info')(story)(context));
+storiesOf('Button', module).add('Button Component', () => <Button />, {
+  info: {
+    text: `
+          description or documentation about my component, supports markdown
+
+          ~~~js
+          <Button>Click Here</Button>
+          ~~~
+        `,
+  },
+});
 ```
 
-## Global options
+## Setting Global Options
 
-To configure default options for all usage of the info option, use `setDefaults` in `.storybook/config.js`:
+To configure default options for all usage of the info addon, pass a option object along with the decorator in `.storybook/config.js`.
 
 ```js
 // config.js
-import { setDefaults } from '@storybook/addon-info';
+import { withInfo } from '@storybook/addon-info';
 
-// addon-info
-setDefaults({
-  header: false, // Toggles display of header with component name and description
-});
+addDecorator(
+  withInfo({
+    header: false, // Global configuration for the info addon across all of your stories.
+  })
+);
 ```
+
+Configuration parameters can be set at 3 different locations: passed as default options along the `addDecorator` call, passed as an object of parameters to a book of stories to the `addParameters` call, and passed as direct parameters to each individual story.
+In order, all of them will be combined together, with a later call overriding the previous set configurations on a per-key basis.
 
 ## Options and Defaults
 
 ```js
 {
-  header: false, // Toggles display of header with component name and description
-  inline: true, // Displays info inline vs click button to view
-  source: true, // Displays the source of story Component
-  propTables: [/* Components used in story */], // displays Prop Tables with these components
-  propTablesExclude: [], // Exclude Components from being shown in Prop Tables section. Accepts an array of component classes or functions.
-  styles: {}, // Overrides styles of addon. The object should follow this shape: https://github.com/storybooks/storybook/blob/master/addons/info/src/components/Story.js#L19. This prop can also accept a function which has the default stylesheet passed as an argument.
-  components: {}, // Overrides components used to display markdown
-  maxPropsIntoLine: 1, // Max props to display per line in source code
-  maxPropObjectKeys: 10, // Displays the first 10 characters of the prop name
-  maxPropArrayLength: 10, // Displays the first 10 items in the default prop array
-  maxPropStringLength: 100, // Displays the first 100 characters in the default prop string,
-  TableComponent: props => {}, // Override the component used to render the props table
-  excludedPropTypes: [], // Will exclude any respective properties whose name is included in array
+  /**
+   * Text to display with storybook component
+   */
+  text?: string;
+  /**
+   * Displays info inline vs click button to view
+   * @default false
+   */
+  inline: boolean,
+  /**
+   * Toggles display of header with component name and description
+   * @default true
+   */
+  header: boolean,
+  /**
+   * Displays the source of story Component
+   * @default true
+   */
+  source: boolean,
+  /**
+   * Components used in story
+   * Displays Prop Tables with these components
+   * @default []
+   */
+  propTables: Array<React.ComponentType>,
+  /**
+   * Exclude Components from being shown in Prop Tables section
+   * Accepts an array of component classes or functions
+   * @default []
+   */
+  propTablesExclude: Array<React.ComponentType>,
+  /**
+   * Overrides styles of addon. The object should follow this shape:
+   * https://github.com/storybooks/storybook/blob/master/addons/info/src/components/Story.js#L19.
+   * This prop can also accept a function which has the default stylesheet passed as an argument
+   */
+  styles: Object | Function,
+  /**
+   * Overrides components used to display markdown
+   * @default {}
+   */
+  components: { [key: string]: React.ComponentType },
+  /**
+   * Max props to display per line in source code
+   * @default 3
+   */
+  maxPropsIntoLine: number,
+  /**
+   * Displays the first 10 characters of the prop name
+   * @default 3
+   */
+  maxPropObjectKeys: number,
+  /**
+   * Displays the first 10 items in the default prop array
+   * @default 3
+   */
+  maxPropArrayLength: number,
+  /**
+   * Displays the first 100 characters in the default prop string
+   * @default 50
+   */
+  maxPropStringLength: number,
+  /**
+   * Override the component used to render the props table
+   * @default PropTable
+   */
+  TableComponent: React.ComponentType,
+  /**
+   * Will exclude any respective properties whose name is included in array
+   * @default []
+   */
+  excludedPropTypes: Array<string>,
 }
-```
-
-## Customizing defaults
-
-To customize your defaults:
-
-```js
-// config.js
-import { setDefaults } from '@storybook/addon-info';
-
-// addon-info
-setDefaults({
-  inline: true,
-  maxPropsIntoLine: 1,
-  maxPropObjectKeys: 10,
-  maxPropArrayLength: 10,
-  maxPropStringLength: 100,
-});
 ```
 
 ### Rendering a Custom Table
@@ -180,40 +261,40 @@ Example:
 ```js
 // button.js
 // @flow
-import React from 'react'
+import React from 'react';
 
 const paddingStyles = {
   small: '4px 8px',
-  medium: '8px 16px'
-}
+  medium: '8px 16px',
+};
 
 const Button = ({
   size,
   ...rest
 }: {
   /** The size of the button */
-  size: 'small' | 'medium'
+  size: 'small' | 'medium',
 }) => {
   const style = {
-    padding: paddingStyles[size] || ''
-  }
-  return <button style={style} {...rest} />
-}
+    padding: paddingStyles[size] || '',
+  };
+  return <button style={style} {...rest} />;
+};
 Button.defaultProps = {
-  size: 'medium'
-}
+  size: 'medium',
+};
 
-export default Button
+export default Button;
 ```
+
 ```js
 // stories.js
-import React from "react";
+import React from 'react';
 
-import { storiesOf } from "@storybook/react";
-import { withInfo } from "@storybook/addon-info";
-import Button from "./button";
+import { storiesOf } from '@storybook/react';
+import Button from './button';
 
-const Red = props => <span style={{ color: "red" }} {...props} />;
+const Red = props => <span style={{ color: 'red' }} {...props} />;
 
 const TableComponent = ({ propDefinitions }) => {
   const props = propDefinitions.map(
@@ -247,12 +328,11 @@ const TableComponent = ({ propDefinitions }) => {
   );
 };
 
-storiesOf("Button", module).add(
-  "with text",
-  withInfo({
-    TableComponent
-  })(() => <Button>Hello Button</Button>)
-);
+storiesOf('Button', module).add('with text', () => <Button>Hello Button</Button>, {
+  info: {
+    TableComponent,
+  },
+});
 ```
 
 ### React Docgen Integration
@@ -265,10 +345,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 /** Button component description */
-const DocgenButton = ({ disabled, label, style, onClick }) =>
+const DocgenButton = ({ disabled, label, style, onClick }) => (
   <button disabled={disabled} style={style} onClick={onClick}>
     {label}
-  </button>;
+  </button>
+);
 
 DocgenButton.defaultProps = {
   disabled: false,

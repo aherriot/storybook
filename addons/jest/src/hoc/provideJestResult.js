@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const provideTests = Component => {
+const provideTests = Component =>
   class TestProvider extends React.Component {
     static propTypes = {
       channel: PropTypes.shape({
@@ -11,40 +11,42 @@ const provideTests = Component => {
       api: PropTypes.shape({
         onStory: PropTypes.func,
       }).isRequired,
+      active: PropTypes.bool,
     };
 
-    constructor(props) {
-      super(props);
+    static defaultProps = {
+      active: true,
+    };
 
-      this.state = {};
-      this.onAddTests = this.onAddTests.bind(this);
-    }
+    state = {};
 
     componentDidMount() {
-      this.stopListeningOnStory = this.props.api.onStory(() => {
+      const { channel, api } = this.props;
+
+      this.stopListeningOnStory = api.onStory(() => {
         this.onAddTests({});
       });
 
-      this.props.channel.on('storybook/tests/add_tests', this.onAddTests);
+      channel.on('storybook/tests/add_tests', this.onAddTests);
     }
 
     componentWillUnmount() {
+      const { channel } = this.props;
+
       if (this.stopListeningOnStory) {
         this.stopListeningOnStory();
       }
-      this.props.channel.removeListener('storybook/tests/add_tests', this.onAddTests);
+      channel.removeListener('storybook/tests/add_tests', this.onAddTests);
     }
 
-    onAddTests({ kind, storyName, tests }) {
+    onAddTests = ({ kind, storyName, tests }) => {
       this.setState({ kind, storyName, tests });
-    }
+    };
 
     render() {
-      return <Component {...this.state} />;
+      const { active } = this.props;
+      return active ? <Component {...this.state} /> : null;
     }
-  }
-
-  return TestProvider;
-};
+  };
 
 export default provideTests;

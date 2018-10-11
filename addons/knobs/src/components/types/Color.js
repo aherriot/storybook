@@ -3,52 +3,49 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { SketchPicker } from 'react-color';
 
-import styled from 'react-emotion';
-import debounce from 'lodash.debounce';
+import styled from '@emotion/styled';
 
-const SwatchButton = styled('button')({
-  background: '#fff',
-  borderRadius: '1px',
-  border: '1px solid rgb(247, 244, 244)',
-  display: 'inline-block',
-  cursor: 'pointer',
-  width: '100%',
-  padding: 0,
+import { Button } from '@storybook/components';
+
+const Swatch = styled.div({
+  position: 'absolute',
+  top: 0,
+  bottom: 0,
+  right: 3,
+  width: 28,
 });
-const Swatch = styled('div')({
-  width: 'auto',
-  height: '20px',
-  borderRadius: '2px',
-  margin: 5,
-});
-const Popover = styled('div')({
+const Popover = styled.div({
   position: 'absolute',
   zIndex: '2',
 });
 
 class ColorType extends React.Component {
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = {
-      displayColorPicker: false,
-      value: props.knob.value,
-    };
-
-    this.onChange = debounce(props.onChange, 200);
-  }
+  state = {
+    displayColorPicker: false,
+  };
 
   componentDidMount() {
     document.addEventListener('mousedown', this.handleWindowMouseDown);
   }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    const { knob } = this.props;
+    const { displayColorPicker } = this.state;
+
+    return (
+      nextProps.knob.value !== knob.value || nextState.displayColorPicker !== displayColorPicker
+    );
+  }
+
   componentWillUnmount() {
     document.removeEventListener('mousedown', this.handleWindowMouseDown);
-    this.onChange.cancel();
   }
 
   handleWindowMouseDown = e => {
-    if (!this.state.displayColorPicker) return;
-    if (this.popover.contains(e.target)) return;
+    const { displayColorPicker } = this.state;
+    if (!displayColorPicker || this.popover.contains(e.target)) {
+      return;
+    }
 
     this.setState({
       displayColorPicker: false,
@@ -56,41 +53,40 @@ class ColorType extends React.Component {
   };
 
   handleClick = () => {
+    const { displayColorPicker } = this.state;
+
     this.setState({
-      displayColorPicker: !this.state.displayColorPicker,
+      displayColorPicker: !displayColorPicker,
     });
   };
 
   handleChange = color => {
-    this.setState({
-      value: color,
-    });
+    const { onChange } = this.props;
 
-    this.onChange(`rgba(${color.rgb.r},${color.rgb.g},${color.rgb.b},${color.rgb.a})`);
+    onChange(`rgba(${color.rgb.r},${color.rgb.g},${color.rgb.b},${color.rgb.a})`);
   };
 
   render() {
     const { knob } = this.props;
-    const { displayColorPicker, value } = this.state;
+    const { displayColorPicker } = this.state;
     const colorStyle = {
       background: knob.value,
     };
 
     return (
-      <div id={knob.name}>
-        <SwatchButton type="button" onClick={this.handleClick}>
-          <Swatch style={colorStyle} />
-        </SwatchButton>
+      <Button type="button" onClick={this.handleClick} size="flex">
+        {knob.value}
+        <Swatch style={colorStyle} />
         {displayColorPicker ? (
           <Popover
             innerRef={e => {
               this.popover = e;
             }}
           >
-            <SketchPicker color={value} onChange={this.handleChange} />
+            <SketchPicker color={knob.value} onChange={this.handleChange} />
           </Popover>
         ) : null}
-      </div>
+      </Button>
     );
   }
 }
