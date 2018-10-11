@@ -27,14 +27,26 @@ function generateSourceWithoutUglyComments(source, { comments, uglyCommentsRegex
   return parts.join('');
 }
 
-function prettifyCode(source, { prettierConfig, parser }) {
+function prettifyCode(source, { prettierConfig, parser, filepath }) {
   let config = prettierConfig;
 
-  if (!config.parser && parser && parser !== 'javascript') {
-    config = {
-      ...prettierConfig,
-      parser,
-    };
+  if (!config.parser) {
+    if (parser) {
+      config = {
+        ...prettierConfig,
+        parser: parser === 'javascript' ? 'babylon' : parser,
+      };
+    } else if (filepath) {
+      config = {
+        ...prettierConfig,
+        filepath,
+      };
+    } else {
+      config = {
+        ...prettierConfig,
+        parser: 'babylon',
+      };
+    }
   }
 
   return prettier.format(source, config);
@@ -53,6 +65,19 @@ export function generateSourceWithDecorators(source, decorator, parserType) {
   return {
     changed: parts.length > 1,
     source: newSource,
+    comments,
+  };
+}
+
+export function generateSourceWithoutDecorators(source, parserType) {
+  const parser = getParser(parserType);
+  const ast = parser.parse(source);
+
+  const { comments = [] } = ast;
+
+  return {
+    changed: true,
+    source,
     comments,
   };
 }

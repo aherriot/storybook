@@ -1,5 +1,5 @@
 /* eslint no-underscore-dangle: 0 */
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 import escape from 'escape-html';
 
 import KnobStore from './KnobStore';
@@ -67,7 +67,10 @@ export default class KnobManager {
   }
 
   update(name, value) {
-    this.knobStore.update(name, value);
+    // @TODO Do we need to call mayCallChannel here?
+
+    const { knobStore } = this;
+    knobStore.update(name, value);
     this.channel.emit('addon:knobs:update');
   }
 

@@ -1,42 +1,44 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-const Button = styled('button')({
+const Button = styled.button(({ theme }) => ({
   listStyle: 'none',
-  backgroundColor: '#fff',
+  backgroundColor: theme.barFill,
   textAlign: 'center',
-  border: '1px solid rgba(0,0,0,0.1)',
-  borderRadius: 4,
+  border: theme.mainBorder,
+  borderRadius: theme.mainBorderRadius,
+  color: 'inherit',
   cursor: 'pointer',
   display: 'inline-block',
   width: 175,
   verticalAlign: 'top',
   wordWrap: 'break-word',
   padding: 0,
-});
-const Block = styled('div')(({ bg }) => ({
+  overflow: 'hidden',
+}));
+
+const Block = styled.div(({ bg, theme }) => ({
   height: 80,
-  borderRadius: '4px 4px 0 0',
   transition: 'opacity 0.25s ease-in-out',
-  borderBottom: '1px solid rgba(0,0,0,0.1)',
+  borderBottom: theme.mainBorder,
   background: bg,
   backgroundSize: 'cover',
   backgroundPosition: 'center',
 }));
 
-const Box = styled('div')({
+const Box = styled.div({
   listStyle: 'none',
   paddingLeft: 10,
   paddingRight: 10,
 });
 
-const Name = styled('h4')({
+const Name = styled.h4({
   float: 'left',
   fontWeight: 'bold',
 });
-const Value = styled('h4')({
+const Value = styled.h4({
   float: 'right',
   fontWeight: 'normal',
 });

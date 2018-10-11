@@ -10,12 +10,21 @@ Storybook Viewport Addon allows your stories to be displayed in different sizes 
 
 Install the following npm module:
 
-    npm i --save-dev @storybook/addon-viewport
+```sh
+npm i --save-dev @storybook/addon-viewport
+```
 
 or with yarn:
 
-    yarn add -D @storybook/addon-viewport
+```sh
+yarn add -D @storybook/addon-viewport
+```
 
+Then, add following content to .storybook/addons.js
+
+```js
+import '@storybook/addon-viewport/register';
+```
 
 ## Configuration
 
@@ -211,24 +220,4 @@ storiesOf('Decorator with object', module)
   )
   .add('onViewportChange', () => <MobileFirstComponent />);
 
-```
-
-## Viewport Component
-
-You can also change the default viewport for a single story using `Viewport` component
-
-```js
-import React from 'react';
-import { storiesOf } from '@storybook/react';
-import { Viewport } from '@storybook/addon-viewport';
-
-// Collection
-storiesOf('Custom Default', module)
-  .add('iphone6p', () => (
-    <Viewport name="iphone6p">
-      <h1>
-        Do I look good on <b>iPhone 6 Plus</b>?
-      </h1>
-    </Viewport>
-  ));
 ```

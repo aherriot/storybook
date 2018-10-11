@@ -1,63 +1,113 @@
 import path from 'path';
 import fs from 'fs';
 import { logger } from '@storybook/node-logger';
+import { TsconfigPathsPlugin } from 'tsconfig-paths-webpack-plugin';
+import { isBuildAngularInstalled, normalizeAssetPatterns } from './angular-cli_utils';
 
-function isAngularCliInstalled() {
+function getTsConfigOptions(tsConfigPath) {
+  const basicOptions = {
+    options: {},
+    fileNames: [],
+    errors: [],
+  };
+
+  if (!fs.existsSync(tsConfigPath)) {
+    return basicOptions;
+  }
+
+  const tsConfig = JSON.parse(fs.readFileSync(tsConfigPath, 'utf8'));
+  const { baseUrl } = tsConfig.compilerOptions || {};
+
+  if (baseUrl) {
+    const tsConfigDirName = path.dirname(tsConfigPath);
+    basicOptions.options.baseUrl = path.resolve(tsConfigDirName, baseUrl);
+  }
+
+  return basicOptions;
+}
+
+function getAngularCliParts(cliWebpackConfigOptions) {
+  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+  const ngCliConfigFactory = require('@angular-devkit/build-angular/src/angular-cli-files/models/webpack-configs');
+
   try {
-    require.resolve('@angular/cli');
-    return true;
+    return {
+      cliCommonConfig: ngCliConfigFactory.getCommonConfig(cliWebpackConfigOptions),
+      cliStyleConfig: ngCliConfigFactory.getStylesConfig(cliWebpackConfigOptions),
+    };
   } catch (e) {
-    return false;
+    return null;
   }
 }
 
-export function getAngularCliWebpackConfigOptions(dirToSearch, appIndex = 0) {
-  const fname = path.join(dirToSearch, '.angular-cli.json');
+export function getAngularCliWebpackConfigOptions(dirToSearch) {
+  const fname = path.join(dirToSearch, 'angular.json');
+
   if (!fs.existsSync(fname)) {
     return null;
   }
-  const cliConfig = JSON.parse(fs.readFileSync(fname, 'utf8'));
-  if (!cliConfig.apps || !cliConfig.apps.length) {
-    throw new Error('.angular-cli.json must have apps entry.');
+
+  const angularJson = JSON.parse(fs.readFileSync(fname, 'utf8'));
+  const { projects, defaultProject } = angularJson;
+
+  if (!projects || !Object.keys(projects).length) {
+    throw new Error('angular.json must have projects entry.');
   }
-  const appConfig = cliConfig.apps[appIndex];
 
-  const cliWebpackConfigOptions = {
-    projectRoot: dirToSearch,
-    appConfig,
-    buildOptions: {
-      outputPath: 'outputPath', // It's dummy value to avoid to Angular CLI's error
-    },
+  let project = projects[Object.keys(projects)[0]];
+
+  if (defaultProject) {
+    project = projects[defaultProject];
+  }
+
+  const { options: projectOptions } = project.architect.build;
+
+  const normalizedAssets = normalizeAssetPatterns(
+    projectOptions.assets,
+    dirToSearch,
+    project.sourceRoot
+  );
+
+  const projectRoot = path.resolve(dirToSearch, project.root);
+  const tsConfigPath = path.resolve(dirToSearch, projectOptions.tsConfig);
+  const tsConfig = getTsConfigOptions(tsConfigPath);
+
+  return {
+    root: dirToSearch,
+    projectRoot,
+    tsConfigPath,
+    tsConfig,
     supportES2015: false,
+    buildOptions: {
+      ...projectOptions,
+      assets: normalizedAssets,
+    },
   };
-
-  return cliWebpackConfigOptions;
 }
 
 export function applyAngularCliWebpackConfig(baseConfig, cliWebpackConfigOptions) {
-  if (!cliWebpackConfigOptions) return baseConfig;
-
-  if (!isAngularCliInstalled()) {
-    logger.info('=> Using base config because @angular/cli is not installed.');
+  if (!cliWebpackConfigOptions) {
     return baseConfig;
   }
 
-  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-  const ngcliConfigFactory = require('@angular/cli/models/webpack-configs');
+  if (!isBuildAngularInstalled()) {
+    logger.info('=> Using base config because @angular-devkit/build-angular is not installed.');
+    return baseConfig;
+  }
 
-  let cliCommonConfig;
-  let cliStyleConfig;
-  try {
-    cliCommonConfig = ngcliConfigFactory.getCommonConfig(cliWebpackConfigOptions);
-    cliStyleConfig = ngcliConfigFactory.getStylesConfig(cliWebpackConfigOptions);
-  } catch (e) {
+  const cliParts = getAngularCliParts(cliWebpackConfigOptions);
+
+  if (!cliParts) {
     logger.warn('=> Failed to get angular-cli webpack config.');
     return baseConfig;
   }
+
   logger.info('=> Get angular-cli webpack config.');
 
-  // Don't use storybooks .css/.scss rules because we have to use rules created by @angualr/cli
-  // because @angular/cli created rules have include/exclude for global style files.
+  const { cliCommonConfig, cliStyleConfig } = cliParts;
+
+  // Don't use storybooks .css/.scss rules because we have to use rules created by @angular-devkit/build-angular
+  // because @angular-devkit/build-angular created rules have include/exclude for global style files.
   const rulesExcludingStyles = baseConfig.module.rules.filter(
     rule =>
       !rule.test || (rule.test.toString() !== '/\\.css$/' && rule.test.toString() !== '/\\.scss$/')
@@ -66,10 +116,12 @@ export function applyAngularCliWebpackConfig(baseConfig, cliWebpackConfigOptions
   // cliStyleConfig.entry adds global style files to the webpack context
   const entry = {
     ...baseConfig.entry,
-    ...cliStyleConfig.entry,
+    iframe: []
+      .concat(baseConfig.entry.iframe)
+      .concat(Object.values(cliStyleConfig.entry).reduce((acc, item) => acc.concat(item), [])),
   };
 
-  const mod = {
+  const module = {
     ...baseConfig.module,
     rules: [...cliStyleConfig.module.rules, ...rulesExcludingStyles],
   };
@@ -77,11 +129,24 @@ export function applyAngularCliWebpackConfig(baseConfig, cliWebpackConfigOptions
   // We use cliCommonConfig plugins to serve static assets files.
   const plugins = [...cliStyleConfig.plugins, ...cliCommonConfig.plugins, ...baseConfig.plugins];
 
+  const resolve = {
+    ...baseConfig.resolve,
+    modules: Array.from(
+      new Set([...baseConfig.resolve.modules, ...cliCommonConfig.resolve.modules])
+    ),
+    plugins: [
+      new TsconfigPathsPlugin({
+        configFile: cliWebpackConfigOptions.buildOptions.tsConfig,
+      }),
+    ],
+  };
+
   return {
     ...baseConfig,
     entry,
-    module: mod,
+    module,
     plugins,
+    resolve,
     resolveLoader: cliCommonConfig.resolveLoader,
   };
 }

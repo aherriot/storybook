@@ -1,30 +1,30 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Storyshots ui/stories/TextFilter with filterText 1`] = `
+exports[`Storyshots UI|stories/TextFilter with filterText 1`] = `
 <div
-  class="css-79elbk"
+  class="css-79elbk eg9vth70"
 >
   <input
-    class="css-11zcadk"
+    class="css-1yhj4t5 eg9vth71"
     name="filter-text"
     placeholder="Filter"
     type="text"
     value="Filter Text"
   />
   <button
-    class="clear css-thhrwj"
+    class="clear css-thhrwj eg9vth72"
   >
     ×
   </button>
 </div>
 `;
 
-exports[`Storyshots ui/stories/TextFilter without filterText 1`] = `
+exports[`Storyshots UI|stories/TextFilter without filterText 1`] = `
 <div
-  class="css-79elbk"
+  class="css-79elbk eg9vth70"
 >
   <input
-    class="css-11zcadk"
+    class="css-1yhj4t5 eg9vth71"
     name="filter-text"
     placeholder="Filter"
     type="text"
