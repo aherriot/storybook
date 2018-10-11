@@ -88,7 +88,7 @@ export default class Panel extends PureComponent {
   update = () => {
     const { channel } = this.props;
 
-    channel.emit('addon:knobs:update2');
+    channel.emit('addon:knobs:update');
   };
 
   copy = () => {
